@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚔️ Quelhas: O Desafio Estratégico</title>
+    <style>
+        /* --- ESTILOS GERAIS E DE TRANSIÇÃO --- */
+        body { 
+            font-family: system-ui, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            background-color: #f4f4f4; 
+            margin: 20px; 
+            color: #333;
+        }
+        
+        /* CONTAINER PRINCIPAL DO JOGO */
+        #game-container { 
+            background-color: #fff; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); 
+            text-align: center;
+            max-width: 95vw; 
+            transition: opacity 1s ease-in-out; /* Adiciona transição para a revelação */
+            opacity: 0; /* Começa invisível */
+        }
+        
+        h1 {
+            color: #3a86ff;
+            margin-bottom: 10px;
+        }
+        
+        /* --- ESTILO DA TELA DE INTRODUÇÃO --- */
+        #intro-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #333;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            cursor: pointer;
+            z-index: 1000;
+            transition: opacity 0.5s ease-out;
+        }
+
+        #intro-screen h2 {
+            font-size: 3em;
+            margin-bottom: 15px;
+            color: #ff9900;
+        }
+        
+        #intro-screen p {
+            font-size: 1.2em;
+            opacity: 0.7;
+        }
+
+        /* --- ESTILOS DO TABULEIRO E CONTROLES --- */
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(10, 30px); 
+            grid-template-rows: repeat(10, 30px);
+            gap: 0; 
+            margin: 20px auto;
+            border: 2px solid #333; 
+            background-color: #333; 
+            width: fit-content;
+            height: fit-content;
+            overflow: hidden; 
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            
+            background-color: #fff; 
+            transition: background-color 0.2s, border 0.2s, box-shadow 0.2s;
+            
+            /* Contorno Preto */
+            border: 1px solid black; 
+        }
+        
+        .cell.odd { background-color: #d0d0d0; }
+        .cell.even { background-color: #fff; }
+        
+        /* JOGADOR 1 (Vertical - Azul) */
+        .cell.player1 { 
+            background-color: #3a86ff; 
+            color: white; 
+            border: 1px solid #1c52b9;
+        } 
+        .cell.player1::before { content: "I"; }
+
+        /* JOGADOR 2 (Horizontal - Laranja) */
+        .cell.player2 { 
+            background-color: #ff9900; 
+            color: white; 
+            border: 1px solid #cc7a00;
+        } 
+        .cell.player2::before { content: "—"; }
+
+        /* Célula de Início Selecionada (vermelho) */
+        .cell.selected { 
+            border: 3px solid #e63946; 
+            box-shadow: 0 0 5px #e63946;
+        } 
+        
+        /* Célula de Destino Válida (verde água) */
+        .cell.valid-target { 
+            border: 3px solid #2a9d8f !important; 
+            box-shadow: 0 0 8px #2a9d8f;
+            cursor: crosshair;
+        }
+
+        .cell:not(.player1):not(.player2):hover { 
+            opacity: 0.8; 
+            background-color: #a8dadc; 
+        }
+        
+        /* Jogada do Bot (Verde Limão) */
+        .cell.bot-move {
+            background-color: #70e000 !important; 
+            border: 3px solid #38b000 !important;
+            box-shadow: 0 0 8px #70e000;
+        }
+
+        #controls { 
+            margin-top: 15px; 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 15px; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 10px;
+            border-bottom: 1px dashed #ccc;
+        }
+        button, select { 
+            padding: 10px 15px; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 1em;
+            transition: background-color 0.1s;
+        }
+        #swap-btn { 
+            background-color: #00b4d8; 
+            color: white; 
+        }
+        #swap-btn:hover:not(:disabled) { 
+            background-color: #008fa5; 
+            cursor: pointer; 
+        }
+        #swap-btn:disabled { 
+            background-color: #ccc; 
+            color: #666; 
+            cursor: not-allowed; 
+        }
+        #new-game-btn { 
+            background-color: #4CAF50; 
+            color: white;
+        }
+        #new-game-btn:hover { background-color: #45a049; }
+
+        #status { 
+            font-size: 1.4em; 
+            margin: 15px 0; 
+            min-height: 25px; 
+            font-weight: bold; 
+            color: #1d3557;
+        }
+        #log { 
+            margin-top: 15px; 
+            text-align: left; 
+            padding: 10px; 
+            border: 1px solid #ccc; 
+            width: 90%; 
+            max-width: 450px; 
+            max-height: 120px; 
+            overflow-y: auto; 
+            background-color: #fafafa; 
+            border-radius: 6px; 
+            font-size: 0.9em; 
+            line-height: 1.4;
+        }
+        #log div { border-bottom: 1px dotted #eee; padding: 2px 0; }
+        #log div:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    
+    <div id="intro-screen" onclick="showGame()">
+        <h2>⚔️ Quelhas: O Desafio Estratégico</h2>
+        <p>Clique em qualquer lugar para começar...</p>
+        <p style="margin-top: 30px; font-size: 0.9em; color: #a0a0a0;">(10x10 com Regra da Troca e IA Mestre)</p>
+    </div>
+
+    <div id="game-container">
+        <h1>Quelhas: O Desafio Estratégico</h1>
+        
+        <div id="controls">
+            <label for="game-mode">Modo de Jogo:</label>
+            <select id="game-mode" onchange="resetGame()">
+                <option value="HvsH">Humano vs. Humano</option>
+                <option value="HvsB">Humano (J1) vs. Bot (J2)</option>
+                <option value="BvsH">Bot (J1) vs. Humano (J2)</option>
+            </select>
+
+            <label for="difficulty">Nível do Bot:</label>
+            <select id="difficulty" onchange="resetGame()">
+                <option value="random">1 - Aleatório</option>
+                <option value="greedy">2 - Gulosa (Mais Longa)</option>
+                <option value="minimax_p1">3 - Avançado (Minimax Prof. 1)</option>
+                <option value="minimax_p2" selected>4 - Mestre (Minimax Prof. 2 - Estratégico)</option>
+            </select>
+            
+            <button id="swap-btn" onclick="triggerSwapRule()" disabled>Trocar Lados</button>
+            <button id="new-game-btn" onclick="resetGame()">Novo Jogo</button>
+        </div>
+        
+        <div id="status"></div>
+
+        <div id="board"></div>
+
+        <div id="log"></div>
+    </div>
+
+    <script>
+        // --- CONSTANTES & VARIÁVEIS GLOBAIS ---
+        const ROWS = 10;
+        const COLS = 10;
+        const PLAYER1 = 1; 
+        const PLAYER2 = 2; 
+        const SCORE_WIN = 10000000; 
+        const SCORE_LOSS = -10000000;
+        const MIN_LENGTH_FOR_BOT_SWAP = 4; 
+        const BOT_ANIMATION_DELAY_MS = 800; 
+        
+        const gameContainerEl = document.getElementById('game-container');
+        const introScreenEl = document.getElementById('intro-screen');
+        const boardEl = document.getElementById('board');
+        const statusEl = document.getElementById('status');
+        const logEl = document.getElementById('log');
+        const swapBtn = document.getElementById('swap-btn');
+        
+        const difficultyDepths = {
+            'minimax_p1': 1,
+            'minimax_p2': 2
+        };
+
+        let board = [];
+        let currentPlayer = PLAYER1;
+        let selectedCell = null;
+        let gameActive = false;
+        let sidesSwapped = false;
+        let firstMoveDone = false;
+        let swapAvailable = false; 
+        
+        let memoizationTable = {}; 
+
+        // --- NOVO: FUNÇÃO PARA MOSTRAR O JOGO ---
+        function showGame() {
+            // Esconde a tela de introdução com transição
+            introScreenEl.style.opacity = '0';
+            
+            // Depois do fade-out, remove a tela de introdução
+            setTimeout(() => {
+                introScreenEl.style.display = 'none';
+                // Revela o container do jogo
+                gameContainerEl.style.opacity = '1'; 
+                // Inicia o jogo
+                resetGame(); 
+            }, 500); 
+        }
+
+
+        // --- FUNÇÕES DE LÓGICA E UTILIDADE (Inalteradas exceto onde indicado) ---
+
+        function coordsToIdx(r, c) { return r * COLS + c; }
+        function idxToCoords(idx) { return { r: Math.floor(idx / COLS), c: idx % COLS }; }
+        
+        function getPlayerOrientation(player) {
+            if (sidesSwapped) { 
+                return player === PLAYER1 ? 'Horizontal' : 'Vertical'; 
+            }
+            return player === PLAYER1 ? 'Vertical' : 'Horizontal';
+        }
+
+        function isCurrentPlayerBot() {
+            const mode = document.getElementById('game-mode').value;
+            return (mode === 'HvsB' && currentPlayer === PLAYER2) || (mode === 'BvsH' && currentPlayer === PLAYER1);
+        }
+
+        function getBotPlayer() {
+            const mode = document.getElementById('game-mode').value;
+            if (mode === 'HvsB') return PLAYER2;
+            if (mode === 'BvsH') return PLAYER1;
+            return 0;
+        }
+        
+        function log(message) {
+            logEl.innerHTML = `<div>${message}</div>` + logEl.innerHTML;
+            while (logEl.children.length > 20) {
+                logEl.removeChild(logEl.lastChild);
+            }
+        }
+
+        function resetGame() {
+            board = Array(ROWS * COLS).fill(0);
+            currentPlayer = PLAYER1;
+            selectedCell = null;
+            gameActive = true;
+            sidesSwapped = false;
+            firstMoveDone = false;
+            swapAvailable = false; 
+            
+            swapBtn.disabled = true;
+            memoizationTable = {}; 
+            logEl.innerHTML = '';
+            
+            renderBoard();
+            updateStatus();
+            log('--- Novo Jogo Iniciado ---');
+
+            if (getBotPlayer() === PLAYER1) {
+                makeBotMove();
+            }
+        }
+
+        function renderBoard() {
+            boardEl.innerHTML = '';
+            for (let i = 0; i < ROWS * COLS; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                
+                const { r, c } = idxToCoords(i);
+                if ((r + c) % 2 === 0) {
+                    cell.classList.add('even');
+                } else {
+                    cell.classList.add('odd');
+                }
+                
+                if (board[i] === PLAYER1) { cell.classList.add('player1'); }
+                else if (board[i] === PLAYER2) { cell.classList.add('player2'); }
+                
+                if (i === selectedCell) { cell.classList.add('selected'); }
+                
+                cell.dataset.index = i;
+                cell.onclick = handleCellClick;
+                boardEl.appendChild(cell);
+            }
+            if (selectedCell !== null) {
+                highlightValidTargets(selectedCell);
+            }
+        }
+        
+        function updateStatus(isBotThinking = false) {
+            const orientation = getPlayerOrientation(currentPlayer);
+            
+            let statusText = `Vez: Jogador ${currentPlayer} (${orientation})`;
+
+            if (isCurrentPlayerBot()) {
+                const botPlayer = getBotPlayer();
+                statusText = `Vez: Bot (J${botPlayer}, ${orientation})`;
+                if (isBotThinking) {
+                    statusText += ` [A Calcular...]`;
+                }
+            }
+            
+            if (swapAvailable) {
+                const j2Orientation = getPlayerOrientation(PLAYER2);
+                statusText = `Decisão de Troca: Jogador 2 (${j2Orientation}) pode jogar ou **TROCAR LADOS**!`;
+            }
+
+            statusEl.innerText = statusText;
+        }
+
+        function clearHighlights() {
+            Array.from(boardEl.children).forEach(cell => {
+                cell.classList.remove('selected');
+                cell.classList.remove('valid-target');
+            });
+        }
+        
+        function highlightValidTargets(startIdx) {
+            const orientation = getPlayerOrientation(currentPlayer);
+            const isVertical = orientation === 'Vertical';
+            const { r: r1, c: c1 } = idxToCoords(startIdx);
+            
+            const cellElements = Array.from(boardEl.children);
+
+            const checkAndHighlight = (r, c) => {
+                const idx = coordsToIdx(r, c);
+                if (isMoveValidPath(startIdx, idx)) {
+                    cellElements[idx].classList.add('valid-target');
+                }
+            };
+            
+            if (isVertical) {
+                for (let r = r1 + 1; r < ROWS; r++) { 
+                    if (board[coordsToIdx(r, c1)] !== 0) break;
+                    checkAndHighlight(r, c1);
+                }
+            } else {
+                for (let c = c1 + 1; c < COLS; c++) { 
+                    if (board[coordsToIdx(r1, c)] !== 0) break;
+                    checkAndHighlight(r1, c);
+                }
+            }
+            
+            if (isVertical) {
+                for (let r = r1 - 1; r >= 0; r--) { 
+                    if (board[coordsToIdx(r, c1)] !== 0) break;
+                    checkAndHighlight(r, c1);
+                }
+            } else {
+                for (let c = c1 - 1; c >= 0; c--) { 
+                    if (board[coordsToIdx(r1, c)] !== 0) break;
+                    checkAndHighlight(r1, c);
+                }
+            }
+            
+        }
+
+        function isMoveValidPath(startIdx, endIdx) {
+            const { r: r1, c: c1 } = idxToCoords(startIdx);
+            const { r: r2, c: c2 } = idxToCoords(endIdx);
+            const orientation = getPlayerOrientation(currentPlayer);
+
+            let isVertical = r1 !== r2 && c1 === c2;
+            let isHorizontal = r1 === r2 && c1 !== c2;
+            
+            if (r1 !== r2 && c1 !== c2) return false; 
+            if (r1 === r2 && c1 === c2) return false; 
+            if (orientation === 'Vertical' && !isVertical) return false;
+            if (orientation === 'Horizontal' && !isHorizontal) return false;
+            
+            if (board[endIdx] !== 0) return false;
+
+            if (isVertical) {
+                let startR = Math.min(r1, r2);
+                let endR = Math.max(r1, r2);
+                for (let r = startR; r <= endR; r++) {
+                    const idx = coordsToIdx(r, c1);
+                    if (board[idx] !== 0 && idx !== startIdx) return false; 
+                }
+            } else { 
+                let startC = Math.min(c1, c2);
+                let endC = Math.max(c1, c2);
+                for (let c = startC; c <= endC; c++) {
+                    const idx = coordsToIdx(r1, c);
+                    if (board[idx] !== 0 && idx !== startIdx) return false; 
+                }
+            }
+            return true;
+        }
+
+        function handleCellClick(event) {
+            if (!gameActive) return;
+            
+            const isBotTurn = isCurrentPlayerBot();
+            if (isBotTurn && !swapAvailable) return; 
+
+            const clickedIdx = parseInt(event.target.dataset.index);
+            
+            if (board[clickedIdx] !== 0) { 
+                selectedCell = null; 
+                clearHighlights();
+                renderBoard(); 
+                return; 
+            }
+
+            if (selectedCell === null) {
+                selectedCell = clickedIdx;
+                highlightValidTargets(selectedCell);
+                
+            } else {
+                const startIdx = selectedCell;
+                const endIdx = clickedIdx;
+                
+                const { r: r1, c: c1 } = idxToCoords(startIdx);
+                const { r: r2, c: c2 } = idxToCoords(endIdx);
+                const isVertical = c1 === c2;
+                let moveLength = isVertical ? Math.abs(r1 - r2) + 1 : Math.abs(c1 - c2) + 1;
+
+                if (tryMove(startIdx, endIdx)) {
+                    log(`J${currentPlayer} (${getPlayerOrientation(currentPlayer)}) jogou.`);
+                    
+                    swapAvailable = false;
+                    swapBtn.disabled = true;
+                    
+                    clearHighlights();
+                    afterMove(currentPlayer, moveLength); 
+                } else {
+                    log('Jogada inválida! Tente novamente.');
+                }
+                selectedCell = null; 
+                clearHighlights();
+            }
+            renderBoard();
+        }
+
+        function tryMove(startIdx, endIdx) {
+            const { r: r1, c: c1 } = idxToCoords(startIdx);
+            const { r: r2, c: c2 } = idxToCoords(endIdx);
+            const orientation = getPlayerOrientation(currentPlayer);
+
+            let isVertical = r1 !== r2 && c1 === c2;
+            let isHorizontal = r1 === r2 && c1 !== c2;
+            
+            if (r1 !== r2 && c1 !== c2) return false; 
+            if (r1 === r2 && c1 === c2) return false; 
+            
+            if (orientation === 'Vertical' && !isVertical) return false;
+            if (orientation === 'Horizontal' && !isHorizontal) return false;
+            
+            let cellsToFill = [];
+            
+            if (isVertical) {
+                let startR = Math.min(r1, r2);
+                let endR = Math.max(r1, r2);
+                for (let r = startR; r <= endR; r++) {
+                    const idx = coordsToIdx(r, c1);
+                    if (board[idx] !== 0 && idx !== startIdx) return false; 
+                    if (board[idx] !== 0 && idx === startIdx) continue;
+                    cellsToFill.push(idx);
+                }
+            } else { 
+                let startC = Math.min(c1, c2);
+                let endC = Math.max(c1, c2);
+                for (let c = startC; c <= endC; c++) {
+                    const idx = coordsToIdx(r1, c);
+                    if (board[idx] !== 0 && idx !== startIdx) return false; 
+                    if (board[idx] !== 0 && idx === startIdx) continue;
+                    cellsToFill.push(idx);
+                }
+            }
+            
+            if (cellsToFill.length < 2) return false;
+
+            for (const idx of cellsToFill) { board[idx] = currentPlayer; }
+            return true;
+        }
+
+
+        function isSwapApplicable(lastPlayer, moveLength) {
+            if (lastPlayer !== PLAYER1 || firstMoveDone || sidesSwapped) return false;
+            return moveLength >= MIN_LENGTH_FOR_BOT_SWAP;
+        }
+        
+        function afterMove(lastPlayer, moveLength) {
+            
+            if (lastPlayer === PLAYER1 && !firstMoveDone) {
+                
+                const swapApplies = isSwapApplicable(lastPlayer, moveLength);
+                firstMoveDone = true; 
+                
+                if (swapApplies) {
+                    const mode = document.getElementById('game-mode').value;
+                    
+                    if (mode === 'HvsB') {
+                        log(`J1 jogou ${moveLength} células. Bot (J2) usa a Regra da Troca.`);
+                        sidesSwapped = true;
+                        swapAvailable = false;
+                        swapBtn.disabled = true;
+                        log(`Bot usou a REGRA DA TROCA! Orientação de J1 AGORA é Horizontal.`);
+                        currentPlayer = PLAYER1;
+                        updateStatus();
+                        renderBoard();
+                        return;
+                        
+                    } else if (mode === 'HvsH' || mode === 'BvsH') {
+                        swapAvailable = true;
+                        swapBtn.disabled = false;
+                        log(`J1 jogou ${moveLength} células. JOGADOR 2 pode optar por 'Trocar Lados' (regra de compensação) ou fazer a sua jogada.`);
+                        currentPlayer = PLAYER2;
+                        updateStatus();
+                        return;
+                    }
+                }
+            } 
+            
+            const nextPlayer = currentPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
+            
+            if (checkGameOver(board, nextPlayer)) {
+                gameActive = false;
+                const winner = currentPlayer; 
+                statusEl.innerText = `FIM! Jogador ${winner} VENCEU!`;
+                log(`*** JOGO TERMINADO *** Jogador ${winner} VENCEU.`);
+                renderBoard(); 
+                return;
+            }
+
+            currentPlayer = nextPlayer;
+            updateStatus(); 
+
+            if (isCurrentPlayerBot()) {
+                makeBotMove();
+            }
+        }
+        
+        function triggerSwapRule() {
+            if (!firstMoveDone || sidesSwapped || !gameActive || !swapAvailable) return;
+
+            sidesSwapped = true;
+            swapAvailable = false;
+            swapBtn.disabled = true;
+            
+            const mode = document.getElementById('game-mode').value;
+            const user = (mode === 'HvsH' || mode === 'BvsH') ? 'Humano (J2)' : 'Bot (J2)';
+            log(`${user} usou a REGRA DA TROCA! As orientações foram invertidas. Turno regressa a J1.`);
+            
+            currentPlayer = PLAYER1;
+            
+            updateStatus();
+            renderBoard();
+
+            if (getBotPlayer() === PLAYER1) {
+                makeBotMove();
+            }
+        }
+
+        function checkGameOver(currentBoard, player) {
+            const possibleMoves = generateAllPossibleMoves(currentBoard, player);
+            return possibleMoves.length === 0;
+        }
+        
+        function generateAllPossibleMoves(currentBoard, player) {
+            const moves = [];
+            const orientation = getPlayerOrientation(player);
+            const isVertical = orientation === 'Vertical';
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const startIdx = coordsToIdx(r, c);
+                    if (currentBoard[startIdx] !== 0) continue; 
+
+                    if (isVertical) {
+                        for (let endR = r + 1; endR < ROWS; endR++) {
+                            const endIdx = coordsToIdx(endR, c);
+                            if (currentBoard[endIdx] !== 0) break; 
+                            
+                            const length = endR - r + 1;
+                            moves.push({ startIdx: startIdx, endIdx: endIdx, length: length });
+                        }
+                    } else { 
+                        for (let endC = c + 1; endC < COLS; endC++) {
+                            const endIdx = coordsToIdx(r, endC);
+                            if (currentBoard[endIdx] !== 0) break; 
+
+                            const length = endC - c + 1;
+                            moves.push({ startIdx: startIdx, endIdx: endIdx, length: length });
+                        }
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function applyMove(currentBoard, move, player) {
+            const newBoard = [...currentBoard];
+            const { r: r1, c: c1 } = idxToCoords(move.startIdx);
+            const { r: r2, c: c2 } = idxToCoords(move.endIdx);
+            const isVertical = c1 === c2;
+
+            if (isVertical) {
+                let startR = Math.min(r1, r2);
+                let endR = Math.max(r1, r2);
+                for (let r = startR; r <= endR; r++) { newBoard[coordsToIdx(r, c1)] = player; }
+            } else { 
+                let startC = Math.min(c1, c2);
+                let endC = Math.max(c1, c2);
+                for (let c = startC; c <= endC; c++) { newBoard[coordsToIdx(r1, c)] = player; }
+            }
+            return newBoard;
+        }
+
+        function getMoveCells(move) {
+             const cells = [];
+            const { r: r1, c: c1 } = idxToCoords(move.startIdx);
+            const { r: r2, c: c2 } = idxToCoords(move.endIdx);
+            const isVertical = c1 === c2;
+
+            if (isVertical) {
+                let startR = Math.min(r1, r2);
+                let endR = Math.max(r1, r2);
+                for (let r = startR; r <= endR; r++) { cells.push(coordsToIdx(r, c1)); }
+            } else { 
+                let startC = Math.min(c1, c2);
+                let endC = Math.max(c1, c2);
+                for (let c = startC; c <= endC; c++) { cells.push(coordsToIdx(r1, c)); }
+            }
+            return cells;
+        }
+        
+        function getBoardHash(currentBoard, playerToMinimize) {
+            return currentBoard.join('') + playerToMinimize + (sidesSwapped ? 'S' : 'N');
+        }
+        
+        function orderMoves(moves) {
+            return moves.sort((a, b) => b.length - a.length);
+        }
+
+        function makeBotMove() {
+            const botPlayer = getBotPlayer();
+            const level = document.getElementById('difficulty').value;
+            let chosenMove = null;
+
+            if (botPlayer === 0) return;
+
+            updateStatus(true); 
+
+            setTimeout(() => {
+                
+                switch (level) {
+                    case 'random': chosenMove = chooseRandomMove(botPlayer); break;
+                    case 'greedy': chosenMove = chooseHeuristicMove(botPlayer); break;
+                    
+                    case 'minimax_p1':
+                    case 'minimax_p2': 
+                        const depth = difficultyDepths[level];
+                        const result = findBestMove(depth, botPlayer);
+                        chosenMove = result.chosenMove;
+                        if (chosenMove) {
+                             log(`Bot JOGOU (J${botPlayer}, Prof. ${result.depthReached}): ${chosenMove.length} células.`)
+                        }
+                        break;
+                }
+
+                if (chosenMove) {
+                    
+                    const moveCells = getMoveCells(chosenMove);
+                    const cellElements = Array.from(boardEl.children);
+                    
+                    moveCells.forEach(idx => {
+                        cellElements[idx].classList.add('bot-move');
+                    });
+                    
+                    setTimeout(() => {
+                        moveCells.forEach(idx => {
+                            cellElements[idx].classList.remove('bot-move');
+                        });
+                        
+                        tryMove(chosenMove.startIdx, chosenMove.endIdx);
+                        afterMove(botPlayer, chosenMove.length); 
+                        renderBoard();
+
+                    }, BOT_ANIMATION_DELAY_MS); 
+                    
+                } else {
+                    const winner = botPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
+                    log(`O BOT (J${botPlayer}) não tem movimentos. Jogador ${winner} VENCEU!`);
+                    gameActive = false;
+                    statusEl.innerText = `FIM! Jogador ${winner} VENCEU!`;
+                    renderBoard();
+                }
+            }, 50);
+        }
+
+        function findBestMove(depth, botPlayer) {
+            memoizationTable = {}; 
+            const possibleMoves = generateAllPossibleMoves(board, botPlayer);
+            if (possibleMoves.length === 0) return { chosenMove: null, depthReached: 0 };
+
+            const opponent = botPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
+            let bestScore = SCORE_LOSS * 2;
+            let bestMove = possibleMoves[0];
+            
+            const orderedMoves = orderMoves(possibleMoves);
+
+            for (const move of orderedMoves) {
+                const newBoard = applyMove(board, move, botPlayer);
+                
+                const score = minimax(newBoard, depth - 1, opponent, SCORE_LOSS * 2, SCORE_WIN * 2, botPlayer);
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+            }
+            return { chosenMove: bestMove, depthReached: depth };
+        }
+
+        function minimax(currentBoard, depth, playerToMaximize, alpha, beta, botPlayer) {
+            const playerToMinimize = playerToMaximize === PLAYER1 ? PLAYER2 : PLAYER1;
+            
+            const hash = getBoardHash(currentBoard, playerToMinimize);
+            if (memoizationTable[hash] !== undefined) {
+                return memoizationTable[hash];
+            }
+
+            if (depth === 0) {
+                return evaluateBoard(currentBoard, botPlayer); 
+            }
+            
+            let possibleMoves = generateAllPossibleMoves(currentBoard, playerToMaximize);
+            if (possibleMoves.length === 0) {
+                let finalScore = playerToMaximize === botPlayer ? SCORE_LOSS + depth : SCORE_WIN - depth; 
+                memoizationTable[hash] = finalScore;
+                return finalScore;
+            }
+            
+            possibleMoves = orderMoves(possibleMoves); 
+
+            let bestEval;
+
+            if (playerToMaximize === botPlayer) {
+                bestEval = SCORE_LOSS * 2;
+                for (const move of possibleMoves) {
+                    const newBoard = applyMove(currentBoard, move, botPlayer);
+                    const evaluation = minimax(newBoard, depth - 1, playerToMinimize, alpha, beta, botPlayer);
+                    bestEval = Math.max(bestEval, evaluation);
+                    alpha = Math.max(alpha, bestEval);
+                    if (beta <= alpha) break; 
+                }
+            } else {
+                bestEval = SCORE_WIN * 2;
+                for (const move of possibleMoves) {
+                    const newBoard = applyMove(currentBoard, move, playerToMinimize);
+                    const evaluation = minimax(newBoard, depth - 1, botPlayer, alpha, beta, botPlayer);
+                    bestEval = Math.min(bestEval, evaluation);
+                    beta = Math.min(beta, bestEval);
+                    if (beta <= alpha) break; 
+                }
+            }
+            
+            memoizationTable[hash] = bestEval;
+            return bestEval;
+        }
+
+        function chooseRandomMove(player) {
+            const possibleMoves = generateAllPossibleMoves(board, player);
+            if (possibleMoves.length > 0) {
+                const randomIndex = Math.floor(Math.random() * possibleMoves.length);
+                return possibleMoves[randomIndex];
+            }
+            return null;
+        }
+
+        function chooseHeuristicMove(player) {
+            const possibleMoves = generateAllPossibleMoves(board, player);
+            if (possibleMoves.length === 0) return null;
+            possibleMoves.sort((a, b) => b.length - a.length);
+            return possibleMoves[0];
+        }
+
+        function analyzeCorridors(currentBoard) {
+            const results = {};
+            const orientations = [
+                { player: PLAYER1, orientation: getPlayerOrientation(PLAYER1) },
+                { player: PLAYER2, orientation: getPlayerOrientation(PLAYER2) }
+            ];
+
+            for (const { player, orientation } of orientations) {
+                let maxLength = 0;
+                let numLongCorridors = 0;
+
+                const moves = generateAllPossibleMoves(currentBoard, player);
+                if (moves.length > 0) {
+                    maxLength = Math.max(...moves.map(m => m.length));
+                    numLongCorridors = moves.filter(m => m.length >= 3).length;
+                }
+
+                results[player] = {
+                    maxLength: maxLength,
+                    numLongCorridors: numLongCorridors
+                };
+            }
+            return results;
+        }
+        
+        function evaluateBoard(currentBoard, playerToMaximize) {
+            const opponent = playerToMaximize === PLAYER1 ? PLAYER2 : PLAYER1;
+
+            if (checkGameOver(currentBoard, opponent)) { return SCORE_WIN; } 
+            if (checkGameOver(currentBoard, playerToMaximize)) { return SCORE_LOSS; } 
+
+            const maxMoves = generateAllPossibleMoves(currentBoard, playerToMaximize);
+            const minMoves = generateAllPossibleMoves(currentBoard, opponent);
+            
+            const corridorAnalysis = analyzeCorridors(currentBoard);
+            const maxCorridors = corridorAnalysis[playerToMaximize];
+            const minCorridors = corridorAnalysis[opponent];
+            
+            const moveDiffScore = (maxMoves.length - minMoves.length) * 50000; 
+            const corridorControlScore = (maxCorridors.numLongCorridors - minCorridors.numLongCorridors) * 1000;
+            const maxCorridorLengthDiff = maxCorridors.maxLength - minCorridors.maxLength;
+            const aggressiveBlockScore = maxCorridorLengthDiff * 500;
+            let maxTotalLength = maxMoves.reduce((sum, move) => sum + move.length, 0);
+            let minTotalLength = minMoves.reduce((sum, move) => sum + move.length, 0);
+            const lengthDiffScore = (maxTotalLength - minTotalLength) * 50; 
+            let maxPieces = currentBoard.filter(p => p === playerToMaximize).length;
+            let minPieces = currentBoard.filter(p => p === opponent).length;
+            const pieceDiffScore = (maxPieces - minPieces) * 10;
+            
+            let finalScore = moveDiffScore + corridorControlScore + aggressiveBlockScore + lengthDiffScore + pieceDiffScore;
+            
+            return finalScore;
+        }
+        
+        // --- INICIALIZAÇÃO (NÃO CHAMA resetGame, AGUARDA showGame) ---
+        // Não fazemos nada ao carregar, o jogo aguarda o clique na tela de introdução.
+    </script>
+</body>
+</html>
