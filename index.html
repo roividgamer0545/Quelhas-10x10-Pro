@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⚔️ Quelhas: O Desafio Estratégico</title>
     <style>
-        /* --- ESTILOS GERAIS E DE TRANSIÇÃO --- */
+        /* --- ESTILOS GERAIS E DE TRANSIÇÃO (MANTIDOS) --- */
         body { 
             font-family: system-ui, sans-serif; 
             display: flex; 
@@ -112,13 +112,13 @@
         } 
         .cell.player2::before { content: "—"; }
 
-        /* Célula de Início Selecionada (Cor Padrão) */
+        /* Célula de Início Selecionada (vermelho) */
         .cell.selected { 
             border: 3px solid #e63946; 
             box-shadow: 0 0 5px #e63946;
         } 
         
-        /* Célula de Destino Válida (Cor Padrão) */
+        /* Célula de Destino Válida (verde água) */
         .cell.valid-target { 
             border: 3px solid #2a9d8f !important; 
             box-shadow: 0 0 8px #2a9d8f;
@@ -130,7 +130,7 @@
             background-color: #a8dadc; 
         }
         
-        /* Jogada do Bot (Cor Padrão) */
+        /* Jogada do Bot (Verde Limão) */
         .cell.bot-move {
             background-color: #70e000 !important; 
             border: 3px solid #38b000 !important;
@@ -199,7 +199,7 @@
         #log div { border-bottom: 1px dotted #eee; padding: 2px 0; }
         #log div:last-child { border-bottom: none; }
 
-        /* --- ESTILOS PARA AS REGRAS --- */
+        /* --- ESTILOS PARA AS REGRAS (Revisado) --- */
         #rules-section {
             text-align: left;
             margin-top: 25px;
@@ -236,19 +236,22 @@
         <h1>Quelhas: O Desafio Estratégico</h1>
         
         <div id="controls">
+ 
             <label for="game-mode">Modo de Jogo:</label>
             <select id="game-mode" onchange="resetGame()">
-                <option value="HvsH">Humano vs. Humano</option>
+                <option value="HvsH" selected>Humano vs. Humano</option>
                 <option value="HvsB">Humano (J1) vs. Bot (J2)</option>
                 <option value="BvsH">Bot (J1) vs. Humano (J2)</option>
-            </select>
+           
+  </select>
 
             <label for="difficulty">Nível do Bot:</label>
             <select id="difficulty" onchange="resetGame()">
                 <option value="random">1 - Aleatório</option>
-                <option value="greedy">2 - Gulosa (Mais Curta - Misère)</option>
+                <option value="greedy">2 - Gulosa (Misère)</option>
                 <option value="minimax_p1">3 - Avançado (Minimax Prof. 1)</option>
-                <option value="minimax_p2" selected>4 - Mestre (Minimax Prof. 2 - Estratégico)</option>
+        
+         <option value="minimax_p2" selected>4 - Mestre (Minimax Prof. 2 - Estratégico)</option>
             </select>
             
             <button id="swap-btn" onclick="triggerSwapRule()" disabled>Trocar Lados</button>
@@ -257,16 +260,17 @@
         
         <div id="status"></div>
 
-        <div id="board"></div>
+   
+      <div id="board"></div>
 
         <div id="log"></div>
         
         <div id="rules-section">
             <h3>📖 Regras do Jogo</h3>
-            <div class="rule-point">1. **Objetivo (Misère Play):** O jogador que realizar a **última jogada** é o **PERDEDOR**. O jogador que **não consegue fazer uma jogada** (fica bloqueado) é o **VENCEDOR**.</div>
+            <div class="rule-point">1. **Objetivo (Vitória Invertida - Misère):** O objetivo é **NÃO** ser o último jogador a conseguir fazer um movimento. O jogador que **não consegue fazer uma jogada** (fica bloqueado) é o **VENCEDOR**.</div>
             <div class="rule-point">2. **Movimento:** Os jogadores preenchem um conjunto de células vazias **contíguas** (em linha reta) na sua direção designada. O movimento deve ter um comprimento **mínimo de 2 células**.</div>
             <div class="rule-point">3. **Orientações Iniciais:** O **Jogador 1** joga **Verticalmente** (colunas) e o **Jogador 2** joga **Horizontalmente** (linhas).</div>
-            <div class="rule-point">4. **Regra da Troca:** Após o 1º movimento de J1, **J2 pode optar por "Trocar Lados"**, independentemente do comprimento da jogada. Se a troca for feita, as orientações invertem-se, e o turno regressa a J1.</div>
+            <div class="rule-point">4. **Regra da Troca:** Após o **primeiro movimento** do Jogador 1, o **Jogador 2** pode optar por **"Trocar Lados"**. Se a troca for feita, as orientações invertem-se (J1 fica Horizontal, J2 fica Vertical) e o J1 joga novamente.</div>
         </div>
         </div>
 
@@ -274,13 +278,14 @@
         // --- CONSTANTES & VARIÁVEIS GLOBAIS ---
         const ROWS = 10;
         const COLS = 10;
-        const PLAYER1 = 1; 
-        const PLAYER2 = 2; 
+        const PLAYER1 = 1; 
+        const PLAYER2 = 2; 
         
+        // Valores de Score Extremos (Ajustado para o Minimax Misère)
         const SCORE_WIN = 10000000; 
         const SCORE_LOSS = -10000000;
         
-        const MIN_LENGTH_FOR_BOT_SWAP = 4; // Limite para o Bot no HvsB
+        const MIN_LENGTH_FOR_BOT_SWAP = 4; // Esta constante não é mais usada para o check, mas mantida por clareza.
         const BOT_ANIMATION_DELAY_MS = 800; 
         
         const gameContainerEl = document.getElementById('game-container');
@@ -303,7 +308,7 @@
         let firstMoveDone = false;
         let swapAvailable = false; 
         
-        let memoizationTable = {}; 
+        let memoizationTable = {};
 
         // --- FUNÇÃO PARA MOSTRAR O JOGO ---
         function showGame() {
@@ -312,14 +317,16 @@
                 introScreenEl.style.display = 'none';
                 gameContainerEl.style.opacity = '1'; 
                 resetGame(); 
-            }, 500); 
+            }, 500);
         }
 
 
         // --- FUNÇÕES DE LÓGICA E UTILIDADE ---
 
-        function coordsToIdx(r, c) { return r * COLS + c; }
-        function idxToCoords(idx) { return { r: Math.floor(idx / COLS), c: idx % COLS }; }
+        function coordsToIdx(r, c) { return r * COLS + c;
+        }
+        function idxToCoords(idx) { return { r: Math.floor(idx / COLS), c: idx % COLS };
+        }
         
         function getPlayerOrientation(player) {
             if (sidesSwapped) { 
@@ -354,16 +361,14 @@
             gameActive = true;
             sidesSwapped = false;
             firstMoveDone = false;
-            swapAvailable = false; 
-            
+            swapAvailable = false;
             swapBtn.disabled = true;
-            memoizationTable = {}; 
+            memoizationTable = {}; 
             logEl.innerHTML = '';
             
             renderBoard();
             updateStatus();
             log('--- Novo Jogo Iniciado (Misère: Perde o Último) ---');
-
             if (getBotPlayer() === PLAYER1) {
                 makeBotMove();
             }
@@ -382,15 +387,19 @@
                 if (board[i] === PLAYER1) { cell.classList.add('player1'); }
                 else if (board[i] === PLAYER2) { cell.classList.add('player2'); }
                 
+                if (i === selectedCell) { cell.classList.add('selected'); }
+                
                 cell.dataset.index = i;
                 cell.onclick = handleCellClick;
                 boardEl.appendChild(cell);
+            }
+            if (selectedCell !== null) {
+                highlightValidTargets(selectedCell);
             }
         }
         
         function updateStatus(isBotThinking = false) {
             const orientation = getPlayerOrientation(currentPlayer);
-            
             let statusText = `Vez: Jogador ${currentPlayer} (${orientation})`;
 
             if (isCurrentPlayerBot()) {
@@ -413,7 +422,6 @@
             Array.from(boardEl.children).forEach(cell => {
                 cell.classList.remove('selected');
                 cell.classList.remove('valid-target');
-                cell.classList.remove('bot-move');
             });
         }
         
@@ -423,37 +431,36 @@
             const { r: r1, c: c1 } = idxToCoords(startIdx);
             
             const cellElements = Array.from(boardEl.children);
-
             const checkAndHighlight = (r, c) => {
                 const idx = coordsToIdx(r, c);
-                if (isMoveValidPath(startIdx, idx)) {
+                if (isMoveValidPath(startIdx, idx)) { 
                     cellElements[idx].classList.add('valid-target');
                 }
             };
-            
-            // Direção Positiva
+
+            // Direção Positiva (Baixo/Direita)
             if (isVertical) {
                 for (let r = r1 + 1; r < ROWS; r++) { 
                     if (board[coordsToIdx(r, c1)] !== 0) break;
                     checkAndHighlight(r, c1);
                 }
-            } else { // Horizontal
-                for (let c = c1 + 1; c < COLS; c++) {
+            } else { 
+                for (let c = c1 + 1; c < COLS; c++) { 
                     if (board[coordsToIdx(r1, c)] !== 0) break;
                     checkAndHighlight(r1, c);
                 }
             }
             
-            // Direção Negativa
+            // Direção Negativa (Cima/Esquerda)
             if (isVertical) {
                 for (let r = r1 - 1; r >= 0; r--) { 
                     if (board[coordsToIdx(r, c1)] !== 0) break;
                     checkAndHighlight(r, c1);
                 }
-            } else { // Horizontal
+            } else { 
                 for (let c = c1 - 1; c >= 0; c--) { 
                     if (board[coordsToIdx(r1, c)] !== 0) break;
-                    checkAndHighlight(r, c);
+                    checkAndHighlight(r1, c);
                 }
             }
             
@@ -463,34 +470,35 @@
             const { r: r1, c: c1 } = idxToCoords(startIdx);
             const { r: r2, c: c2 } = idxToCoords(endIdx);
             const orientation = getPlayerOrientation(currentPlayer);
-
             let isVertical = r1 !== r2 && c1 === c2;
             let isHorizontal = r1 === r2 && c1 !== c2;
             
+            if (r1 === r2 && c1 === c2) return false;
             if (r1 !== r2 && c1 !== c2) return false; 
-            if (r1 === r2 && c1 === c2) return false; 
+            
             if (orientation === 'Vertical' && !isVertical) return false;
             if (orientation === 'Horizontal' && !isHorizontal) return false;
             
             if (board[endIdx] !== 0) return false;
 
+            let moveLength = isVertical ? Math.abs(r1 - r2) + 1 : Math.abs(c1 - c2) + 1;
+
+            if (moveLength < 2) return false;
+            
+            // Verifica se há peças a bloquear o caminho (todas as células no caminho devem ser vazias)
             if (isVertical) {
                 let startR = Math.min(r1, r2);
                 let endR = Math.max(r1, r2);
-                if (endR - startR + 1 < 2) return false; 
-                
                 for (let r = startR; r <= endR; r++) {
                     const idx = coordsToIdx(r, c1);
-                    if (board[idx] !== 0 && idx !== startIdx) return false; 
+                    if (board[idx] !== 0) return false; 
                 }
-            } else { 
+            } else { 
                 let startC = Math.min(c1, c2);
                 let endC = Math.max(c1, c2);
-                if (endC - startC + 1 < 2) return false;
-                
                 for (let c = startC; c <= endC; c++) {
                     const idx = coordsToIdx(r1, c);
-                    if (board[idx] !== 0 && idx !== startIdx) return false; 
+                    if (board[idx] !== 0) return false;
                 }
             }
             return true;
@@ -498,34 +506,26 @@
 
         function handleCellClick(event) {
             if (!gameActive) return;
-            
-            const mode = document.getElementById('game-mode').value;
             const isBotTurn = isCurrentPlayerBot();
             
+            // Se for turno do Bot E a troca não estiver disponível (BvsH), bloqueia.
+            // Se for Humano vs. Humano (HvsH), isBotTurn é false, permitindo sempre o clique.
             if (isBotTurn && !swapAvailable) return; 
 
-            const clickedEl = event.target;
-            const clickedIdx = parseInt(clickedEl.dataset.index);
-            
+            const clickedIdx = parseInt(event.target.dataset.index);
+            // Célula vazia?
             if (board[clickedIdx] !== 0) { 
-                selectedCell = null; 
+                selectedCell = null;
                 clearHighlights();
                 renderBoard(); 
                 return; 
             }
 
             if (selectedCell === null) {
-                
-                clearHighlights(); 
                 selectedCell = clickedIdx;
-                clickedEl.classList.add('selected'); 
+                event.target.classList.add('selected'); 
                 highlightValidTargets(selectedCell);
                 
-                // Se for o J2 e o swap estiver disponível, desativa o botão (J2 está a jogar).
-                 if (swapAvailable && currentPlayer === PLAYER2 && (mode === 'HvsH' || mode === 'BvsH')) {
-                    swapBtn.disabled = true;
-                }
-
             } else {
                 const startIdx = selectedCell;
                 const endIdx = clickedIdx;
@@ -534,13 +534,9 @@
                 const { r: r2, c: c2 } = idxToCoords(endIdx);
                 const isVertical = c1 === c2;
                 let moveLength = isVertical ? Math.abs(r1 - r2) + 1 : Math.abs(c1 - c2) + 1;
-
+                
                 if (moveLength < 2) {
                     log('Jogada inválida: O movimento deve ter no mínimo 2 células.');
-                    // Se falhar, re-ativa o botão de troca para J2
-                    if (swapAvailable && currentPlayer === PLAYER2 && (mode === 'HvsH' || mode === 'BvsH')) {
-                         swapBtn.disabled = false;
-                    }
                     selectedCell = null; 
                     clearHighlights();
                     renderBoard();
@@ -550,35 +546,25 @@
                 if (tryMove(startIdx, endIdx)) {
                     log(`J${currentPlayer} (${getPlayerOrientation(currentPlayer)}) jogou.`);
                     
-                    swapAvailable = false;
-                    swapBtn.disabled = true;
-                    
                     clearHighlights();
                     afterMove(currentPlayer, moveLength); 
                 } else {
                     log('Jogada inválida! Tente novamente.');
-                    // Se falhar, re-ativa o botão de troca para J2
-                    if (swapAvailable && currentPlayer === PLAYER2 && (mode === 'HvsH' || mode === 'BvsH')) {
-                         swapBtn.disabled = false;
-                    }
                 }
                 selectedCell = null; 
                 clearHighlights();
-                renderBoard(); 
             }
+            renderBoard();
         }
 
         function tryMove(startIdx, endIdx) {
             const { r: r1, c: c1 } = idxToCoords(startIdx);
             const { r: r2, c: c2 } = idxToCoords(endIdx);
             const orientation = getPlayerOrientation(currentPlayer);
-
             let isVertical = r1 !== r2 && c1 === c2;
             let isHorizontal = r1 === r2 && c1 !== c2;
-            
             if (r1 !== r2 && c1 !== c2) return false; 
-            if (r1 === r2 && c1 === c2) return false; 
-            
+            if (r1 === r2 && c1 === c2) return false;
             if (orientation === 'Vertical' && !isVertical) return false;
             if (orientation === 'Horizontal' && !isHorizontal) return false;
             
@@ -589,114 +575,111 @@
                 let endR = Math.max(r1, r2);
                 for (let r = startR; r <= endR; r++) {
                     const idx = coordsToIdx(r, c1);
-                    if (board[idx] !== 0 && idx !== startIdx) return false; 
-                    if (board[idx] !== 0 && idx === startIdx) continue;
+                    if (board[idx] !== 0) return false; 
                     cellsToFill.push(idx);
                 }
-            } else { 
+            } else { 
                 let startC = Math.min(c1, c2);
                 let endC = Math.max(c1, c2);
                 for (let c = startC; c <= endC; c++) {
                     const idx = coordsToIdx(r1, c);
-                    if (board[idx] !== 0 && idx !== startIdx) return false; 
-                    if (board[idx] !== 0 && idx === startIdx) continue;
+                    if (board[idx] !== 0) return false; 
                     cellsToFill.push(idx);
                 }
             }
             
             if (cellsToFill.length < 2) return false;
-
             for (const idx of cellsToFill) { board[idx] = currentPlayer; }
             return true;
         }
 
-
-        // --- FUNÇÃO afterMove (Lógica de Vitória Misère & Regra da Troca Corrigidas) ---
+        // --- CORREÇÃO: REGRA DA TROCA APLICA-SE SEMPRE NO PRIMEIRO MOVIMENTO ---
+        function isSwapApplicable(lastPlayer, moveLength) {
+            // A troca só é aplicável se J1 fez o primeiro movimento e o jogo ainda não terminou/trocou.
+            if (lastPlayer !== PLAYER1 || firstMoveDone || sidesSwapped) return false;
+            // A regra aplica-se a qualquer movimento válido (mínimo de 2).
+            return moveLength >= 2; 
+        }
+        
         function afterMove(lastPlayer, moveLength) {
             
-            const nextPlayer = currentPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
-            const mode = document.getElementById('game-mode').value;
-
-            // -----------------------------------------------------
-            // 1. REGRA DA TROCA (Apenas após o 1º movimento de J1)
-            // -----------------------------------------------------
+            // 1. VERIFICAÇÃO DA REGRA DA TROCA
             if (lastPlayer === PLAYER1 && !firstMoveDone) {
-                
+       
+                const swapApplies = isSwapApplicable(lastPlayer, moveLength);
                 firstMoveDone = true; 
-                const moveLongEnoughForBotSwap = moveLength >= MIN_LENGTH_FOR_BOT_SWAP;
                 
-                if (mode === 'HvsB') {
-                    // Lógica do Bot para Troca - Apenas se a jogada for longa
-                    if (moveLongEnoughForBotSwap) { 
+                if (swapApplies) {
+                    const mode = document.getElementById('game-mode').value;
+                    
+                    if (mode === 'HvsB') {
+                        // J2 (Bot) decide automaticamente e usa a troca
                         log(`J1 jogou ${moveLength} células. Bot (J2) usa a Regra da Troca.`);
                         sidesSwapped = true;
                         swapAvailable = false;
                         swapBtn.disabled = true;
                         
-                        log(`Bot usou a REGRA DA TROCA! Orientação de J1 AGORA é Horizontal.`);
-                        currentPlayer = PLAYER1; // Volta para J1 (Humano) para o 2º movimento
+                        currentPlayer = PLAYER1; // Volta para J1
+                        updateStatus();
+                        
+                        if (getBotPlayer() === PLAYER1) {
+                            makeBotMove();
+                        } else {
+                            renderBoard();
+                        }
+                        return;
+                        
+                    } else if (mode === 'HvsH' || mode === 'BvsH') {
+                        // J2 (Humano) decide. Ativa o botão e passa o turno para J2.
+                        swapAvailable = true;
+                        swapBtn.disabled = false;
+                        
+                        const player1Type = mode === 'HvsH' ? 'Humano' : 'Bot';
+                        log(`J1 (${player1Type}) jogou ${moveLength} células. JOGADOR 2 (Humano) pode optar por 'Trocar Lados' ou fazer a sua jogada.`);
+                        currentPlayer = PLAYER2;
                         updateStatus();
                         renderBoard();
-                        return;
+                        return; // O jogo espera pela decisão do J2
                     }
-                } 
-                
-                // J2 Humano (HvsH ou BvsH): A opção de Troca está SEMPRE disponível.
-                if (mode === 'HvsH' || mode === 'BvsH') {
-                    swapAvailable = true;
-                    
-                    // A opção de Troca SÓ DEVE ESTAR VISÍVEL/CLICÁVEL para o Humano J2.
-                    swapBtn.disabled = true; 
-                    if (mode === 'HvsH' || (mode === 'BvsH' && PLAYER2 !== getBotPlayer())) {
-                         swapBtn.disabled = false; // Se J2 é Humano, ativa o botão.
-                    }
-                    
-                    const player1Type = mode === 'HvsH' ? 'Humano' : 'Bot';
-                    const logMsg = `J1 (${player1Type}) jogou ${moveLength} células. JOGADOR 2 (Humano) pode optar por 'Trocar Lados' ou fazer a sua jogada.`;
-                    log(logMsg);
-                    
-                    currentPlayer = PLAYER2;
-                    updateStatus();
-                    return;
                 }
+                // Se a jogada do J1 for válida, mas a troca não se aplica (impossível com moveLength >= 2 agora, mas mantido por segurança), 
+                // continua o fluxo normal.
             } 
             
-            // -----------------------------------------------------
-            // 2. VERIFICAÇÃO DE FIM DE JOGO (MODO MISÈRE)
-            // -----------------------------------------------------
+            // 2. LIMPEZA DA TROCA APÓS JOGADA NORMAL DE J2 (Se a troca estava disponível e J2 jogou)
+            if (swapAvailable && lastPlayer === PLAYER2) {
+                 swapAvailable = false;
+                 swapBtn.disabled = true;
+            }
+            
+            // 3. VERIFICAÇÃO DE FIM DE JOGO (Lógica Misère: O jogador bloqueado VENCE)
+            const nextPlayer = currentPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
             
             if (checkGameOver(board, nextPlayer)) {
                 gameActive = false;
                 
-                // MISÈRE PLAY: O currentPlayer (quem fez a última jogada) é o PERDEDOR.
-                const loser = currentPlayer; 
-                const winner = nextPlayer; // Quem ficou bloqueado, VENCE.
+                // O VENCEDOR É O JOGADOR QUE FICOU BLOQUEADO
+                const winner = nextPlayer; 
+                const loser = lastPlayer;
                 
-                // Mensagens finais claras
-                statusEl.innerText = `FIM! Jogador ${winner} VENCEU!`;
-                log(`*** JOGO TERMINADO *** Jogador ${loser} PERDEU (fez a última jogada). Jogador ${winner} VENCEU (ficou bloqueado).`);
-                
+                statusEl.innerText = `FIM! Jogador ${winner} VENCEU! (J${loser} fez a última jogada e perdeu)`;
+                log(`*** JOGO TERMINADO *** Jogador ${winner} VENCEU (J${loser} fez a última jogada e perdeu).`);
                 renderBoard(); 
                 return;
             }
 
-            // -----------------------------------------------------
-            // 3. MUDANÇA DE TURNO PADRÃO
-            // -----------------------------------------------------
-            
+            // 4. MUDANÇA DE TURNO
             currentPlayer = nextPlayer;
-            updateStatus(); 
-
+            updateStatus();
             if (isCurrentPlayerBot()) {
                 makeBotMove();
             }
         }
-        // --- FIM DA FUNÇÃO afterMove ---
-
 
         function triggerSwapRule() {
             if (!firstMoveDone || sidesSwapped || !gameActive || !swapAvailable) return;
-
+            
+            // Troca os lados
             sidesSwapped = true;
             swapAvailable = false;
             swapBtn.disabled = true;
@@ -705,11 +688,10 @@
             const user = (mode === 'HvsH' || mode === 'BvsH') ? 'Humano (J2)' : 'Bot (J2)';
             log(`${user} usou a REGRA DA TROCA! As orientações foram invertidas. Turno regressa a J1.`);
             
-            currentPlayer = PLAYER1;
+            currentPlayer = PLAYER1; // Volta para J1
             
             updateStatus();
             renderBoard();
-
             if (getBotPlayer() === PLAYER1) {
                 makeBotMove();
             }
@@ -724,11 +706,10 @@
             const moves = [];
             const orientation = getPlayerOrientation(player);
             const isVertical = orientation === 'Vertical';
-
             for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
                     const startIdx = coordsToIdx(r, c);
-                    if (currentBoard[startIdx] !== 0) continue; 
+                    if (currentBoard[startIdx] !== 0) continue; 
 
                     // Direção Positiva
                     if (isVertical) {
@@ -736,18 +717,14 @@
                             const endIdx = coordsToIdx(endR, c);
                             if (currentBoard[endIdx] !== 0) break; 
                             const length = endR - r + 1;
-                            if (length >= 2) {
-                                moves.push({ startIdx: startIdx, endIdx: endIdx, length: length });
-                            }
+                            if (length >= 2) moves.push({ startIdx: startIdx, endIdx: endIdx, length: length });
                         }
-                    } else { 
+                    } else { 
                         for (let endC = c + 1; endC < COLS; endC++) {
                             const endIdx = coordsToIdx(r, endC);
                             if (currentBoard[endIdx] !== 0) break; 
                             const length = endC - c + 1;
-                            if (length >= 2) {
-                                moves.push({ startIdx: startIdx, endIdx: endIdx, length: length });
-                            }
+                            if (length >= 2) moves.push({ startIdx: startIdx, endIdx: endIdx, length: length });
                         }
                     }
                     
@@ -757,23 +734,19 @@
                             const endIdx = coordsToIdx(endR, c);
                             if (currentBoard[endIdx] !== 0) break; 
                             const length = r - endR + 1;
-                            if (length >= 2) {
-                                moves.push({ startIdx: startIdx, endIdx: endIdx, length: length });
-                            }
+                            if (length >= 2) moves.push({ startIdx: startIdx, endIdx: endIdx, length: length });
                         }
-                    } else { 
+                    } else { 
                         for (let endC = c - 1; endC >= 0; endC--) {
                             const endIdx = coordsToIdx(r, endC);
                             if (currentBoard[endIdx] !== 0) break; 
                             const length = c - endC + 1;
-                             if (length >= 2) {
-                                moves.push({ startIdx: startIdx, endIdx: endIdx, length: length });
-                            }
+                            if (length >= 2) moves.push({ startIdx: startIdx, endIdx: endIdx, length: length });
                         }
                     }
                 }
             }
-            return moves.filter(move => move.length >= 2);
+            return moves;
         }
 
         function applyMove(currentBoard, move, player) {
@@ -785,11 +758,13 @@
             if (isVertical) {
                 let startR = Math.min(r1, r2);
                 let endR = Math.max(r1, r2);
-                for (let r = startR; r <= endR; r++) { newBoard[coordsToIdx(r, c1)] = player; }
+                for (let r = startR; r <= endR; r++) { newBoard[coordsToIdx(r, c1)] = player;
+                }
             } else { 
                 let startC = Math.min(c1, c2);
                 let endC = Math.max(c1, c2);
-                for (let c = startC; c <= endC; c++) { newBoard[coordsToIdx(r1, c)] = player; }
+                for (let c = startC; c <= endC; c++) { newBoard[coordsToIdx(r1, c)] = player;
+                }
             }
             return newBoard;
         }
@@ -803,11 +778,13 @@
             if (isVertical) {
                 let startR = Math.min(r1, r2);
                 let endR = Math.max(r1, r2);
-                for (let r = startR; r <= endR; r++) { cells.push(coordsToIdx(r, c1)); }
+                for (let r = startR; r <= endR; r++) { cells.push(coordsToIdx(r, c1));
+                }
             } else { 
                 let startC = Math.min(c1, c2);
                 let endC = Math.max(c1, c2);
-                for (let c = startC; c <= endC; c++) { cells.push(coordsToIdx(r1, c)); }
+                for (let c = startC; c <= endC; c++) { cells.push(coordsToIdx(r1, c));
+                }
             }
             return cells;
         }
@@ -816,102 +793,81 @@
             return currentBoard.join('') + playerToMinimize + (sidesSwapped ? 'S' : 'N');
         }
         
-        // --- FUNÇÕES DE IA/BOT (MINIMAX - Misère) ---
-        
-        function evaluateBoard(currentBoard, playerToMaximize) {
-            const opponent = playerToMaximize === PLAYER1 ? PLAYER2 : PLAYER1;
+        function makeBotMove() {
+            const botPlayer = getBotPlayer();
+            const level = document.getElementById('difficulty').value;
+            let chosenMove = null;
 
-            // 1. CONDIÇÕES TERMINAIS (JÁ ESTÃO CORRETAS PARA MISÈRE)
-            // Se o Oponente (MINIMIZADOR) está bloqueado, ele perde -> Bot ganha.
-            if (checkGameOver(currentBoard, opponent)) { return SCORE_WIN; } 
-            // Se o Bot (MAXIMIZADOR) está bloqueado, ele perde -> Bot perde.
-            if (checkGameOver(currentBoard, playerToMaximize)) { return SCORE_LOSS; } 
+            if (botPlayer === 0) return;
 
-            const maxMoves = generateAllPossibleMoves(currentBoard, playerToMaximize);
-            const minMoves = generateAllPossibleMoves(currentBoard, opponent);
-            
-            const corridorAnalysis = analyzeCorridors(currentBoard);
-            const maxCorridors = corridorAnalysis[playerToMaximize];
-            const minCorridors = corridorAnalysis[opponent];
-            
-            // --- 2. HEURÍSTICA MISÈRE (INVERTIDA) ---
-            // O Bot (Maximizer) quer que o Oponente (Minimizer) tenha mais opções e mais corredores.
-            
-            // H1: Contagem de Movimentos (Bot quer que o Oponente tenha mais)
-            // Novo: (minMoves.length - maxMoves.length) -> Positivo se Opponent > Bot
-            const moveDiffScore = (minMoves.length - maxMoves.length) * 50000; 
-            
-            // H2: Controlo de Corredores (Bot quer que o Oponente tenha mais corredores longos)
-            // Novo: (minCorridors.numLongCorridors - maxCorridors.numLongCorridors) -> Positivo se Opponent > Bot
-            const corridorControlScore = (minCorridors.numLongCorridors - maxCorridors.numLongCorridors) * 1000;
-            
-            // H3: Comprimento Máximo (Bot quer que o Oponente tenha o caminho mais longo)
-            const maxCorridorLengthDiff = minCorridors.maxLength - maxCorridors.maxLength;
-            const aggressiveBlockScore = maxCorridorLengthDiff * 500;
-            
-            // H4: Comprimento Total (Bot quer que o Oponente tenha mais soma de comprimentos)
-            let maxTotalLength = maxMoves.reduce((sum, move) => sum + move.length, 0);
-            let minTotalLength = minMoves.reduce((sum, move) => sum + move.length, 0);
-            const lengthDiffScore = (minTotalLength - maxTotalLength) * 50; 
-            
-            // H5: Peças no Tabuleiro (Normalmente o Bot quer menos peças, pois limita os seus movimentos futuros)
-            let maxPieces = currentBoard.filter(p => p === playerToMaximize).length;
-            let minPieces = currentBoard.filter(p => p === opponent).length;
-            // Damos um ligeiro bónus ao oponente por ter mais peças.
-            const pieceDiffScore = (minPieces - maxPieces) * 10; 
-            
-            let finalScore = moveDiffScore + corridorControlScore + aggressiveBlockScore + lengthDiffScore + pieceDiffScore;
-            
-            return finalScore;
-        }
-
-        function analyzeCorridors(currentBoard) {
-            const results = {};
-            const orientations = [
-                { player: PLAYER1, orientation: getPlayerOrientation(PLAYER1) },
-                { player: PLAYER2, orientation: getPlayerOrientation(PLAYER2) }
-            ];
-
-            for (const { player } of orientations) {
-                let maxLength = 0;
-                let numLongCorridors = 0;
-
-                const moves = generateAllPossibleMoves(currentBoard, player);
-                if (moves.length > 0) {
-                    maxLength = Math.max(...moves.map(m => m.length));
-                    numLongCorridors = moves.filter(m => m.length >= 3).length;
+            updateStatus(true);
+            setTimeout(() => {
+                
+                switch (level) {
+                    case 'random': chosenMove = chooseRandomMove(botPlayer); break;
+                    case 'greedy': chosenMove = chooseHeuristicMove(botPlayer); break;
+              
+                    case 'minimax_p1':
+                    case 'minimax_p2': 
+                        const depth = difficultyDepths[level];
+                        const result = findBestMove(depth, botPlayer);
+                        chosenMove = result.chosenMove;
+                        if (chosenMove) {
+                             log(`Bot JOGOU (J${botPlayer}, Prof. ${result.depthReached}): ${chosenMove.length} células.`)
+                        }
+                        break;
                 }
 
-                results[player] = {
-                    maxLength: maxLength,
-                    numLongCorridors: numLongCorridors
-                };
-            }
-            return results;
+                if (chosenMove) {
+                    const moveCells = getMoveCells(chosenMove);
+                    const cellElements = Array.from(boardEl.children);
+                    
+                    moveCells.forEach(idx => {
+                        cellElements[idx].classList.add('bot-move');
+                    });
+                    
+                    setTimeout(() => {
+                        moveCells.forEach(idx => {
+                            cellElements[idx].classList.remove('bot-move');
+                        });
+                        
+                        tryMove(chosenMove.startIdx, chosenMove.endIdx);
+                        afterMove(botPlayer, chosenMove.length); 
+                        renderBoard();
+
+                    }, BOT_ANIMATION_DELAY_MS);
+                } else {
+                    // O Bot está bloqueado -> VENCE (Misère)
+                    const winner = botPlayer;
+                    log(`O BOT (J${botPlayer}) não tem movimentos. Jogador ${winner} VENCEU!`);
+                    gameActive = false;
+                    statusEl.innerText = `FIM! Bot (J${winner}) VENCEU!`;
+                    renderBoard();
+                }
+            }, 50);
         }
 
         function findBestMove(depth, botPlayer) {
             memoizationTable = {};
             const possibleMoves = generateAllPossibleMoves(board, botPlayer);
-            if (possibleMoves.length === 0) return { chosenMove: null, score: SCORE_LOSS, depthReached: 0 };
-            
+            if (possibleMoves.length === 0) return { chosenMove: null, depthReached: 0 };
             const opponent = botPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
-            let bestScore = SCORE_LOSS * 2;
+            
+            let bestScore = SCORE_LOSS * 2; 
             let bestMove = possibleMoves[0];
             
-            // Ordena pela jogada mais curta (Misère) - Tentar adiar o fim do jogo/forçar oponente a ter mais opções
-            const orderedMoves = possibleMoves.sort((a, b) => a.length - b.length);
-            
+            const orderedMoves = possibleMoves.sort((a, b) => b.length - a.length);
+
             for (const move of orderedMoves) {
                 const newBoard = applyMove(board, move, botPlayer);
-                const score = minimax(newBoard, depth - 1, opponent, SCORE_LOSS * 2, SCORE_WIN * 2, botPlayer); 
-
+                const score = minimax(newBoard, depth - 1, opponent, SCORE_LOSS * 2, SCORE_WIN * 2, botPlayer);
+                
                 if (score > bestScore) {
                     bestScore = score;
                     bestMove = move;
                 }
             }
-            return { chosenMove: bestMove, score: bestScore, depthReached: depth };
+            return { chosenMove: bestMove, depthReached: depth };
         }
 
         function minimax(currentBoard, depth, playerToMaximize, alpha, beta, botPlayer) {
@@ -927,38 +883,35 @@
             }
             
             let possibleMoves = generateAllPossibleMoves(currentBoard, playerToMaximize);
-            
             if (possibleMoves.length === 0) {
-                // REGRA INVERTIDA: O jogador que NÃO PODE MOVER (playerToMaximize) PERDE.
-                // Se playerToMaximize é o bot, é SCORE_LOSS. Se for o oponente, é SCORE_WIN.
-                let finalScore = playerToMaximize === botPlayer ? SCORE_LOSS + depth : SCORE_WIN - depth; 
+                // CORREÇÃO CRÍTICA DO MISÈRE: O jogador que não pode mover (playerToMaximize) VENCE.
+                let finalScore = playerToMaximize === botPlayer ? SCORE_WIN + depth : SCORE_LOSS - depth; 
                 memoizationTable[hash] = finalScore;
                 return finalScore;
             }
             
-            // Ordenação heurística para Alpha-Beta (misere: tentar manter movimentos pequenos)
-            possibleMoves.sort((a, b) => a.length - b.length);
+            possibleMoves = possibleMoves.sort((a, b) => a.length - b.length);
             let bestEval;
 
             if (playerToMaximize === botPlayer) {
-                // MAXIMIZAR (BOT) - Tenta ganhar ou prolongar o jogo
+                // MAXIMIZAR o score (Bot quer vencer/ser bloqueado pelo adversário)
                 bestEval = SCORE_LOSS * 2;
                 for (const move of possibleMoves) {
                     const newBoard = applyMove(currentBoard, move, botPlayer);
                     const evaluation = minimax(newBoard, depth - 1, playerToMinimize, alpha, beta, botPlayer);
                     bestEval = Math.max(bestEval, evaluation);
                     alpha = Math.max(alpha, bestEval);
-                    if (beta <= alpha) break; 
+                    if (beta <= alpha) break; 
                 }
             } else {
-                // MINIMIZAR (OPONENTE) - Tenta perder ou encurtar o jogo para ganhar
+                // MINIMIZAR o score (Oponente quer que o Bot perca/seja bloqueado por ele próprio)
                 bestEval = SCORE_WIN * 2;
                 for (const move of possibleMoves) {
                     const newBoard = applyMove(currentBoard, move, playerToMinimize);
                     const evaluation = minimax(newBoard, depth - 1, botPlayer, alpha, beta, botPlayer);
                     bestEval = Math.min(bestEval, evaluation);
                     beta = Math.min(beta, bestEval);
-                    if (beta <= alpha) break; 
+                    if (beta <= alpha) break; 
                 }
             }
             
@@ -976,78 +929,73 @@
         }
 
         function chooseHeuristicMove(player) {
-            // Gulosa (Mais Curta - Misère): Prioriza a jogada mais curta possível.
+            // Gulosa (Misère): Tenta fazer a jogada mais pequena
             const possibleMoves = generateAllPossibleMoves(board, player);
             if (possibleMoves.length === 0) return null;
             
-            possibleMoves.sort((a, b) => a.length - b.length); 
+            possibleMoves.sort((a, b) => a.length - b.length);
             return possibleMoves[0];
         }
-        
-        
-        function makeBotMove() {
-            const botPlayer = getBotPlayer();
-            const level = document.getElementById('difficulty').value;
-            let chosenMove = null;
 
-            if (botPlayer === 0) return;
+        function analyzeCorridors(currentBoard) {
+            const results = {};
+            const orientations = [
+                { player: PLAYER1, orientation: getPlayerOrientation(PLAYER1) },
+                { player: PLAYER2, orientation: getPlayerOrientation(PLAYER2) }
+            ];
+            for (const { player, orientation } of orientations) {
+                let maxLength = 0;
+                let numLongCorridors = 0;
 
-            updateStatus(true); 
-
-            setTimeout(() => {
-                
-                switch (level) {
-                    case 'random': chosenMove = chooseRandomMove(botPlayer); break;
-                    case 'greedy': chosenMove = chooseHeuristicMove(botPlayer); break;
-                    
-                    case 'minimax_p1':
-                    case 'minimax_p2': 
-                        const depth = difficultyDepths[level];
-                        const result = findBestMove(depth, botPlayer);
-                        chosenMove = result.chosenMove;
-                        if (chosenMove) {
-                            log(`Bot JOGOU (J${botPlayer}, Prof. ${result.depthReached}): ${chosenMove.length} células.`)
-                        }
-                        break;
+                const moves = generateAllPossibleMoves(currentBoard, player);
+                if (moves.length > 0) {
+                    maxLength = Math.max(...moves.map(m => m.length));
+                    numLongCorridors = moves.filter(m => m.length >= 3).length;
                 }
 
-                if (chosenMove) {
-                    
-                    const moveCells = getMoveCells(chosenMove);
-                    const cellElements = Array.from(boardEl.children);
-                    
-                    moveCells.forEach(idx => { cellElements[idx].classList.add('bot-move'); });
-                    
-                    setTimeout(() => {
-                        moveCells.forEach(idx => { cellElements[idx].classList.remove('bot-move'); });
-                        
-                        tryMove(chosenMove.startIdx, chosenMove.endIdx);
-                        afterMove(botPlayer, chosenMove.length); 
-                        renderBoard();
-
-                    }, BOT_ANIMATION_DELAY_MS); 
-                    
-                } else {
-                    // O BOT (currentPlayer) não tem movimentos, por isso o adversário VENCE (Misère Rule).
-                    const winner = botPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
-                    const loser = botPlayer;
-                    
-                    log(`O BOT (J${loser}) não tem movimentos e PERDE. Jogador ${winner} VENCEU!`);
-                    gameActive = false;
-                    statusEl.innerText = `FIM! Jogador ${winner} VENCEU!`;
-                    renderBoard();
-                }
-
-            }, BOT_ANIMATION_DELAY_MS);
+                results[player] = {
+                    maxLength: maxLength,
+                    numLongCorridors: numLongCorridors
+                };
+            }
+            return results;
         }
         
-        // --- INICIALIZAÇÃO ---
-        if (introScreenEl.style.display !== 'none') {
-             // Não faz nada, aguarda showGame()
-        } else {
-             resetGame();
-        }
+        function evaluateBoard(currentBoard, playerToMaximize) {
+            const opponent = playerToMaximize === PLAYER1 ? PLAYER2 : PLAYER1;
 
+            if (checkGameOver(currentBoard, opponent)) { return SCORE_WIN; }
+            if (checkGameOver(currentBoard, playerToMaximize)) { return SCORE_LOSS; }
+
+            const maxMoves = generateAllPossibleMoves(currentBoard, playerToMaximize);
+            const minMoves = generateAllPossibleMoves(currentBoard, opponent);
+            
+            const corridorAnalysis = analyzeCorridors(currentBoard);
+            const maxCorridors = corridorAnalysis[playerToMaximize];
+            const minCorridors = corridorAnalysis[opponent];
+            
+            // O BOT (MAXIMIZADOR) quer que o oponente (MINIMIZADOR) tenha mais opções de movimento para o bloquear (Misère).
+
+            // 1. Diferença no Número de Movimentos:
+            const moveDiffScore = (minMoves.length - maxMoves.length) * 50000; 
+
+            // 2. Controle de Corredores Longos:
+            const corridorControlScore = (minCorridors.numLongCorridors - maxCorridors.numLongCorridors) * 1000;
+            
+            // 3. Diferença de Comprimento Total (Ponderada):
+            let maxTotalLength = maxMoves.reduce((sum, move) => sum + move.length, 0);
+            let minTotalLength = minMoves.reduce((sum, move) => sum + move.length, 0);
+            const lengthDiffScore = (minTotalLength - maxTotalLength) * 50; 
+            
+            // 4. Controlo de Peças:
+            let maxPieces = currentBoard.filter(p => p === playerToMaximize).length;
+            let minPieces = currentBoard.filter(p => p === opponent).length;
+            const pieceDiffScore = (minPieces - maxPieces) * 10; 
+
+            let finalScore = moveDiffScore + corridorControlScore + lengthDiffScore + pieceDiffScore;
+            
+            return finalScore;
+        }
     </script>
 </body>
 </html>
