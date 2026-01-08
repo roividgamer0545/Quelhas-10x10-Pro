@@ -9,6 +9,8 @@
         #game-container { background-color: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); text-align: center; max-width: 95vw; opacity: 0; transition: opacity 0.5s; }
         h1 { color: #3a86ff; margin: 10px 0 0 0; }
         .author-tag { color: #888; font-size: 0.9em; margin-bottom: 15px; }
+        .author-link { color: inherit; text-decoration: none; font-weight: bold; }
+        .author-link:hover { text-decoration: underline; color: #3a86ff; }
         
         /* TABULEIRO */
         #board { display: grid; grid-template-columns: repeat(10, 32px); grid-template-rows: repeat(10, 32px); margin: 20px auto; border: 3px solid #333; background-color: #333; gap: 1px; }
@@ -45,12 +47,12 @@
 
 <div id="intro-screen" onclick="showGame()">
     <h1 style="font-size: 3.5em; letter-spacing: 5px; color: #fff;">QUELHAS</h1>
-    <p class="intro-sub">Criado por David Marchão</p>
+    <p class="intro-sub">Criado por <a href="https://davidmarchao20117-gif.github.io/Biografia/" target="_blank" class="author-link" onclick="event.stopPropagation();">David Marchão</a></p>
 </div>
 
 <div id="game-container">
     <h1>Quelhas</h1>
-    <p class="author-tag">Criado por David Marchão</p>
+    <p class="author-tag">Criado por <a href="https://davidmarchao20117-gif.github.io/Biografia/" target="_blank" class="author-link">David Marchão</a></p>
     <div id="controls">
         <select id="game-mode" onchange="resetGame()"><option value="HvsB">👤 vs 🤖</option><option value="HvsH">👤 vs 👤</option></select>
         <select id="difficulty"><option value="1">Nível 1</option><option value="3" selected>Nível 3 (Mestre)</option></select>
